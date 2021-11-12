@@ -1,9 +1,12 @@
 library(tidyverse)
-#devtools::install_github("AndersenLab/easyfulcrum")
 library(easyfulcrum)
+#devtools::install_github("AndersenLab/easyfulcrum")
 
-# set the project directory
-dir = "~/repos/2021OctoberHawaii"
+# set working directory to project directory
+setwd(glue::glue("{dirname(rstudioapi::getActiveDocumentContext()$path)}/.."))
+
+# assign the project directory to dir
+dir <-  getwd()
 
 # make dir structure for processing
 makeDirStructure(startdir = dir)
@@ -39,22 +42,29 @@ raw_geno_nema <- readGenotypes(gsKey = c("1wpHcvoWt3y3AsZNMKyPS2m5bEobeP8WEC68Xk
 # process the genotyping sheet
 proc_geno_nema <- checkGenotypes(geno_data = raw_geno_nema, fulc_data = anno_fulc, 
                                  return_geno = TRUE, return_flags = FALSE, profile = "nematode")
+# remove S-14886 and 18937992 from joined data below, neither are Caenorhabditis. 
 
 # join genotype data with Fulcrum data
-join_genofulc_nema <- joinGenoFulc(geno = proc_geno_nema, fulc = anno_fulc, dir = NULL, select_vars = TRUE)
-
-#-------------------------------------
-# waiting for Robyn to finish the october sheet
-#--------------------------------------
+join_genofulc_nema <- joinGenoFulc(geno = proc_geno_nema, fulc = anno_fulc, dir = NULL, select_vars = TRUE) %>%
+  dplyr::filter(!(s_label %in% c("S-14886", "18937992")))
 
 # Process photos
-final_data_nema <- procPhotos2(dir = dir, data = join_genofulc_nema,
+`2021OctoberHawaii` <- procPhotos2(dir = dir, data = join_genofulc_nema,
                               max_dim = 500, overwrite = TRUE,
-                              CeNDR = TRUE)
+                              CeaNDR = TRUE)
 
 # make the species sheet for CeNDR
-sp_sheet <- makeSpSheet(data = final_data_nema, dir = dir)
-# lots of issues to fix here, what's up with landscapes?
+raw_sp_sheet <- makeSpSheet(data = `2021OctoberHawaii`)
+
+# fix the species sheet
+fixed_sp_sheet <- raw_sp_sheet %>%
+  dplyr::mutate(isolated_by = case_when(isolated_by == "robyn.tanny@northwestern.edu" ~ "R. Tanny",
+                                        isolated_by == "emily.koury@northwestern.edu" ~ "E. Koury"),
+                sampled_by = "E. Andersen") %>%
+  dplyr::filter(species != "Caenorhabditis oiwi")
+
+# export the fixed species sheet
+rio::export(fixed_sp_sheet, file = "reports/spSheet.csv")
 
 # Make final report
-generateReport(data = final_data_nema, dir = dir, profile = "nematode")
+generateReport(data = `2021OctoberHawaii`, dir = dir, profile = "nematode")
