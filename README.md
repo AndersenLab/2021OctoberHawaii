@@ -1,2 +1,2 @@
 # 2021OctoberHawaii
-Nematode collection trip to Oahu and the Big Island in October 2021 by Erik Andersen
+Nematode collection trip to Maui, Kaui, Big Island, and Kauai in October 2021 by Erik Andersen
